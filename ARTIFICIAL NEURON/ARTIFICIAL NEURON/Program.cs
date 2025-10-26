@@ -10,7 +10,7 @@ internal class Program
     {
         private double numOfRoomsWeight;
         private double distanceToCenterWeight;
-        private double ageWeight;
+        
         private double learningRate;
 
         private double MSE;
@@ -20,7 +20,7 @@ internal class Program
             this.learningRate = learningRate;
             numOfRoomsWeight = random.NextDouble() * 2 - 1;
             distanceToCenterWeight = random.NextDouble() * 2 - 1;
-            ageWeight = random.NextDouble() * 2 - 1;
+            
             MSE = 0;
             dataNum = 0;
         }
@@ -29,7 +29,7 @@ internal class Program
         {
             this.numOfRoomsWeight = original.numOfRoomsWeight;
             this.distanceToCenterWeight = original.distanceToCenterWeight;
-            this.ageWeight = original.ageWeight;
+            
             this.MSE = original.MSE;
             this.learningRate = learningRate;
         }
@@ -41,14 +41,14 @@ internal class Program
             double age = tempAge / 30;
             double rent = tempRent / 10000;
 
-            double v = (numOfRooms * numOfRoomsWeight) + (age * ageWeight) + (distanceToCenter * distanceToCenterWeight);
+            double v = (numOfRooms * numOfRoomsWeight) + (distanceToCenter * distanceToCenterWeight);
             double sigmoidFunc = 1 / (1 + Math.Pow(Math.E, -v));
 
 
 
             numOfRoomsWeight += learningRate * (rent - sigmoidFunc) * numOfRooms;
             distanceToCenterWeight += learningRate * (rent - sigmoidFunc) * distanceToCenter;
-            ageWeight += learningRate * (rent - sigmoidFunc) * age;
+
         }
         public double test(double tempNumOfRooms, double tempDistanceToCenter, double tempAge, double tempRent)
         {
@@ -56,7 +56,7 @@ internal class Program
             double distanceToCenter = tempDistanceToCenter / 20;
             double age = tempAge / 30;
 
-            double v = (numOfRooms * numOfRoomsWeight) + (age * ageWeight) + (distanceToCenter * distanceToCenterWeight);
+            double v = (numOfRooms * numOfRoomsWeight) + (distanceToCenter * distanceToCenterWeight);
             double sigmoidFunc = 1 / (1 + Math.Pow(Math.E, -v));
 
             calcMSE(tempRent,sigmoidFunc*10000);
