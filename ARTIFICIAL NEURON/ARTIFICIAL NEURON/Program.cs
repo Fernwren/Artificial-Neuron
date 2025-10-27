@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.IO;
 using System.Linq.Expressions;
 using System.Transactions;
@@ -10,17 +10,18 @@ internal class Program
     {
         private double numOfRoomsWeight;
         private double distanceToCenterWeight;
-        private double ageWeight;
+
         private double learningRate;
 
         private double MSE;
+        private double estimatedRent;
         private int dataNum;
         public artificialNeuron(double learningRate)
         {
             this.learningRate = learningRate;
             numOfRoomsWeight = random.NextDouble() * 2 - 1;
             distanceToCenterWeight = random.NextDouble() * 2 - 1;
-            ageWeight = random.NextDouble() * 2 - 1;
+
             MSE = 0;
             dataNum = 0;
         }
@@ -29,7 +30,7 @@ internal class Program
         {
             this.numOfRoomsWeight = original.numOfRoomsWeight;
             this.distanceToCenterWeight = original.distanceToCenterWeight;
-            this.ageWeight = original.ageWeight;
+
             this.MSE = original.MSE;
             this.learningRate = learningRate;
         }
@@ -41,109 +42,123 @@ internal class Program
             double age = tempAge / 30;
             double rent = tempRent / 10000;
 
-            double v = (numOfRooms * numOfRoomsWeight) + (age * ageWeight) + (distanceToCenter * distanceToCenterWeight);
+            double v = (numOfRooms * numOfRoomsWeight) + (distanceToCenter * distanceToCenterWeight);
             double sigmoidFunc = 1 / (1 + Math.Pow(Math.E, -v));
 
 
 
             numOfRoomsWeight += learningRate * (rent - sigmoidFunc) * numOfRooms;
             distanceToCenterWeight += learningRate * (rent - sigmoidFunc) * distanceToCenter;
-            ageWeight += learningRate * (rent - sigmoidFunc) * age;
+
         }
-        public double test(double tempNumOfRooms, double tempDistanceToCenter, double tempAge, double tempRent)
+        public void test(double tempNumOfRooms, double tempDistanceToCenter, double tempAge, double tempRent)
         {
             double numOfRooms = tempNumOfRooms / 5;
             double distanceToCenter = tempDistanceToCenter / 20;
             double age = tempAge / 30;
 
-            double v = (numOfRooms * numOfRoomsWeight) + (age * ageWeight) + (distanceToCenter * distanceToCenterWeight);
+            double v = (numOfRooms * numOfRoomsWeight) + (distanceToCenter * distanceToCenterWeight);
             double sigmoidFunc = 1 / (1 + Math.Pow(Math.E, -v));
 
-            calcMSE(tempRent,sigmoidFunc*10000);
+            calcMSE(tempRent, sigmoidFunc * 10000);
 
-            return sigmoidFunc * 10000;
+            estimatedRent = sigmoidFunc * 10000;
         }
 
         public void calcMSE(double realRent, double expectedRent)
         {
-            MSE += Math.Pow(((realRent/10000)-(expectedRent/10000)),2);
+            MSE += Math.Pow(((realRent / 10000) - (expectedRent / 10000)), 2);
             dataNum += 1;
         }
 
+        public string getEstimatedRent()
+        {
+            return estimatedRent.ToString("F2");
+        }
         public double getMSE()
         {
-            return MSE/dataNum;
+            return MSE / dataNum;
+        }
+        public double getLearningRate()
+        {
+            return learningRate;
+        }
+        public override string ToString()
+        {
+            return "Estimated Rent: "+ getEstimatedRent()+" MSE: "+getMSE();
         }
     }
+
+    
+
     private static void Main(string[] args)
     {
-        artificialNeuron neuron1 = new artificialNeuron(0.01);
-        artificialNeuron neuron2 = new artificialNeuron(neuron1,0.05);
-        artificialNeuron neuron3 = new artificialNeuron(neuron1, 0.1);
-        artificialNeuron neuron4 = new artificialNeuron(neuron1, 0.01);
-        artificialNeuron neuron5 = new artificialNeuron(neuron1, 0.05);
-        artificialNeuron neuron6 = new artificialNeuron(neuron1, 0.1);
-
-        List<double> trainValues = new List<double>();
-        string[] lines = File.ReadAllLines("Training_Set.csv");
-        for (int i = 0; i < lines.Length; i++)
+        static List<double> readCSV(string path)
         {
-            foreach (string s in lines[i].Split(','))
+
+            List<double> values = new List<double>();
+            string[] lines = File.ReadAllLines(path);
+            for (int i = 0; i < lines.Length; i++)
             {
-                trainValues.Add(Double.Parse(s,CultureInfo.InvariantCulture));
+                foreach (string s in lines[i].Split(','))
+                {
+                    values.Add(Double.Parse(s, CultureInfo.InvariantCulture));
+                }
             }
+            return values;
         }
-
-        List<double> testValues = new List<double>();
-        string[] lines2 = File.ReadAllLines("Test_Set.csv");
-        for (int i = 0; i < lines2.Length; i++)
+        static artificialNeuron trainingXTimes(artificialNeuron reference_neuron, int epoch)
         {
-            foreach (string s in lines2[i].Split(','))
+            artificialNeuron neuron = reference_neuron;
+            List<double> trainValues = readCSV("Training_Set.csv");
+
+            for (int n = 0; n < epoch; n++)
             {
-                testValues.Add(Double.Parse(s, CultureInfo.InvariantCulture));
+                for (int i = 0; i < trainValues.Count; i += 4)
+                {
+                    neuron.train(trainValues.ElementAt(i), trainValues.ElementAt(i + 1), trainValues.ElementAt(i + 2), trainValues.ElementAt(i + 3));
+                }
             }
-        }
+            return neuron;
 
-        for (int n = 0; n < 25; n++)
-        {
-            for (int i = 0; i < trainValues.Count; i += 4)
-            {
-                neuron1.train(trainValues.ElementAt(i), trainValues.ElementAt(i + 1), trainValues.ElementAt(i + 2), trainValues.ElementAt(i + 3));
-                neuron2.train(trainValues.ElementAt(i), trainValues.ElementAt(i + 1), trainValues.ElementAt(i + 2), trainValues.ElementAt(i + 3));
-                neuron3.train(trainValues.ElementAt(i), trainValues.ElementAt(i + 1), trainValues.ElementAt(i + 2), trainValues.ElementAt(i + 3));
-            }
-        }
 
-        for (int n = 0; n < 100; n++)
-        {
-            for (int i = 0; i < trainValues.Count; i += 4)
-            {
-                neuron4.train(trainValues.ElementAt(i), trainValues.ElementAt(i + 1), trainValues.ElementAt(i + 2), trainValues.ElementAt(i + 3));
-                neuron5.train(trainValues.ElementAt(i), trainValues.ElementAt(i + 1), trainValues.ElementAt(i + 2), trainValues.ElementAt(i + 3));
-                neuron6.train(trainValues.ElementAt(i), trainValues.ElementAt(i + 1), trainValues.ElementAt(i + 2), trainValues.ElementAt(i + 3));
-            }
-        }
+        }   
+        artificialNeuron neuron1 = trainingXTimes(new artificialNeuron(0.01),25);
+        artificialNeuron neuron2 = trainingXTimes(new artificialNeuron(neuron1, 0.05),25);
+        artificialNeuron neuron3 = trainingXTimes(new artificialNeuron(neuron1, 0.1),25);
 
-        //for (int i = 0; i < trainValues.Count; i += 4)
-        {
-            //Console.WriteLine(neuron1.test(trainValues.ElementAt(i), trainValues.ElementAt(i + 1), trainValues.ElementAt(i + 2), trainValues.ElementAt(i + 3)));
-        }
+        artificialNeuron neuron4 = trainingXTimes(new artificialNeuron(0.01), 100);
+        artificialNeuron neuron5 = trainingXTimes(new artificialNeuron(neuron1, 0.05), 100);
+        artificialNeuron neuron6 = trainingXTimes(new artificialNeuron(neuron1, 0.1), 100);
+        List<(artificialNeuron neuron, string epoch)> neurons = new List<(artificialNeuron, string)> {
+            (neuron1,"25"),
+            (neuron2,"25"),
+            (neuron3,"25"),
+            (neuron4,"100"),
+            (neuron5,"100"),
+            (neuron6,"100")
+        };
+
+
+        List<double> testValues = readCSV("Test_Set.csv");
+
 
         for (int i = 0; i < testValues.Count; i += 4)
         {
-            Console.WriteLine(neuron1.test(testValues.ElementAt(i), testValues.ElementAt(i + 1), testValues.ElementAt(i + 2), testValues.ElementAt(i + 3)));
-            Console.WriteLine(neuron2.test(testValues.ElementAt(i), testValues.ElementAt(i + 1), testValues.ElementAt(i + 2), testValues.ElementAt(i + 3)));
-            Console.WriteLine(neuron3.test(testValues.ElementAt(i), testValues.ElementAt(i + 1), testValues.ElementAt(i + 2), testValues.ElementAt(i + 3)));
-            Console.WriteLine(neuron4.test(testValues.ElementAt(i), testValues.ElementAt(i + 1), testValues.ElementAt(i + 2), testValues.ElementAt(i + 3)));
-            Console.WriteLine(neuron5.test(testValues.ElementAt(i), testValues.ElementAt(i + 1), testValues.ElementAt(i + 2), testValues.ElementAt(i + 3)));
-            Console.WriteLine(neuron6.test(testValues.ElementAt(i), testValues.ElementAt(i + 1), testValues.ElementAt(i + 2), testValues.ElementAt(i + 3)));
+            foreach(var n in neurons)
+            {
+                n.neuron.test(testValues.ElementAt(i), testValues.ElementAt(i + 1), testValues.ElementAt(i + 2), testValues.ElementAt(i + 3));
+            }    
         }
 
-        Console.WriteLine(neuron1.getMSE());
-        Console.WriteLine(neuron2.getMSE());
-        Console.WriteLine(neuron3.getMSE());
-        Console.WriteLine(neuron4.getMSE());
-        Console.WriteLine(neuron5.getMSE());
-        Console.WriteLine(neuron6.getMSE());
+        Console.WriteLine("Epoch: ".PadRight(10)+"Learning Rate:".PadRight(15)+"Estimated Rent:".PadRight(20)+"MSE: ".PadRight(15));
+        foreach (var n in neurons)
+        {    
+            Console.WriteLine(n.epoch.PadRight(10)+
+                n.neuron.getLearningRate().ToString().PadRight(15)+
+                n.neuron.getEstimatedRent().PadRight(20)+
+                n.neuron.getMSE().ToString("F5").PadRight(15));
+        }
+        
     }
 }
