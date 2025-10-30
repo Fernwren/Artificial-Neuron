@@ -14,18 +14,18 @@ internal class Program
         private double learningRate;
 
         private double MSE;
-        private int dataNum;
+        private int dataNum;//a variable to count how many times that neuron gets tested
         public artificialNeuron(double learningRate)
         {
             this.learningRate = learningRate;
-            numOfRoomsWeight = random.NextDouble() * 2 - 1;
+            numOfRoomsWeight = random.NextDouble() * 2 - 1;//some basic mathematical calculations to expand the random range. this is necessary since this function cannot generate negative values
             distanceToCenterWeight = random.NextDouble() * 2 - 1;
 
             MSE = 0;
             dataNum = 0;
         }
 
-        public artificialNeuron(artificialNeuron original)
+        public artificialNeuron(artificialNeuron original)//a copy constructer
         {
             numOfRoomsWeight = original.numOfRoomsWeight;
             distanceToCenterWeight = original.distanceToCenterWeight;
@@ -36,14 +36,16 @@ internal class Program
 
         public void train(double tempNumOfRooms, double tempDistanceToCenter, double tempAge, double tempRent)
         {
-            double numOfRooms = tempNumOfRooms / 5;
+            //degrading all variables between 0 and 1
+            double numOfRooms = tempNumOfRooms / 5; 
             double distanceToCenter = tempDistanceToCenter / 20;
             double age = tempAge / 30;
             double rent = tempRent / 10000;
 
             double v = (numOfRooms * numOfRoomsWeight) + (age * ageWeight) + (distanceToCenter * distanceToCenterWeight);
-            double sigmoidFunc = 1 / (1 + Math.Pow(Math.E, -v));
+            double sigmoidFunc = 1 / (1 + Math.Pow(Math.E, -v));//calculating sigmoid function
 
+            //rearranging weights according to sigmoid function's value
             numOfRoomsWeight += learningRate * (rent - sigmoidFunc) * numOfRooms;
             distanceToCenterWeight += learningRate * (rent - sigmoidFunc) * distanceToCenter;
             ageWeight += learningRate * (rent - sigmoidFunc) * age;
@@ -51,38 +53,39 @@ internal class Program
 
         public double test(double tempNumOfRooms, double tempDistanceToCenter, double tempAge, double tempRent)
         {
+            //degrading all variables between 0 and 1
             double numOfRooms = tempNumOfRooms / 5;
             double distanceToCenter = tempDistanceToCenter / 20;
             double age = tempAge / 30;
 
             double v = (numOfRooms * numOfRoomsWeight) + (age * ageWeight) + (distanceToCenter * distanceToCenterWeight);
-            double sigmoidFunc = 1 / (1 + Math.Pow(Math.E, -v));
+            double sigmoidFunc = 1 / (1 + Math.Pow(Math.E, -v));//this time sigmoid function gives us an expected rent value
 
-            calcMSE(tempRent, sigmoidFunc * 10000);
+            calcMSE(tempRent, sigmoidFunc * 10000);//this is a cumulative function to calculate MSE
 
-            return sigmoidFunc * 10000;
+            return sigmoidFunc * 10000;//since we degraded rent variable by 1/10000, we should multiply it by 10000 when returning it 
         }
 
-        public void calcMSE(double realRent, double expectedRent)
+        public void calcMSE(double realRent, double expectedRent)//we call this function every time we test the neuron and add up the values
         {
             MSE += Math.Pow((realRent / 10000) - (expectedRent / 10000), 2);
-            dataNum += 1;
+            dataNum += 1;//we increase the dataNum everytime we call calcMSE
         }
 
-        public void setLearningRate(double learningRate)
+        public void setLearningRate(double learningRate)//a function to change a neuron's learning rate manually
         {
             this.learningRate= learningRate;
         }
-        public double getMSE()
+        public double getMSE()//a function to get current MSE of this neuron
         {
-            return MSE / dataNum;
+            return MSE / dataNum;//this part is important to get the real MSE. it is written in the formula itself.
         }
         public double getLearningRate()
         {
             return learningRate;
         }
     }
-    static List<double> readCSV(string path)
+    static List<double> readCSV(string path)//a function to read csv files
     {
 
         List<double> values = new List<double>();
@@ -94,9 +97,9 @@ internal class Program
                 values.Add(Double.Parse(s, CultureInfo.InvariantCulture));
             }
         }
-        return values;
+        return values;//it returns a single line of data. [a,b,c,d,e,......,n]
     }
-    static void trainXTimes(ref artificialNeuron[] referenceNeurons, int epoch, List<double> trainData)
+    static void trainXTimes(ref artificialNeuron[] referenceNeurons, int epoch, List<double> trainData)//a function to train bunch of neurons specified times with specitied training data
     { 
         for (int n = 0; n < epoch; n++)
         {
@@ -110,7 +113,7 @@ internal class Program
         }
     }
 
-    static void neuronTest(ref artificialNeuron referenceNeuron, List<double> testData)
+    static void neuronTest(ref artificialNeuron referenceNeuron, List<double> testData)//a function to test a neuron and print the results
     {
         for (int i = 0; i < testData.Count; i += 4)
         {
